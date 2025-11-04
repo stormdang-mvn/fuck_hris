@@ -1,45 +1,52 @@
 <template>
   <div class="work-reports">
     <!-- Header -->
-    <div class="header-section">
-      <div class="header-content">
+    <PageHeader>
+      <template #left>
         <div class="page-title">
-          <h1>📊 Work Reports</h1>
-          <p class="subtitle">Team work tracking and statistics · {{ viewMode === 'month' ? selectedMonth : selectedYear }}</p>
-        </div>
-        
-        <!-- Filters in header -->
-        <div class="header-filters">
-          <div class="btn-group">
-            <button 
-              @click="viewMode = 'month'" 
-              :class="['btn-filter', { active: viewMode === 'month' }]"
-            >
-              📅 Monthly
-            </button>
-            <button 
-              @click="viewMode = 'year'" 
-              :class="['btn-filter', { active: viewMode === 'year' }]"
-            >
-              📆 Yearly
-            </button>
+          <div class="title-row">
+            <router-link to="/" class="back-button">
+              ← Back
+            </router-link>
+            <h1>📊 Work Reports</h1>
           </div>
-
-          <input 
-            v-if="viewMode === 'month'" 
-            type="month" 
-            v-model="selectedMonth" 
-            class="input-date"
-          />
-          <input 
-            v-else
-            type="number" 
-            v-model.number="selectedYear" 
-            class="input-date" 
-            min="2020" 
-            max="2030"
-          />
+          <p class="subtitle">Team work tracking and statistics</p>
         </div>
+      </template>
+    </PageHeader>
+
+    <!-- Filters Section (moved out of header) -->
+    <div class="filters-section">
+      <div class="filters-container">
+        <div class="btn-group">
+          <button 
+            @click="viewMode = 'month'" 
+            :class="['btn-filter', { active: viewMode === 'month' }]"
+          >
+            📅 Monthly
+          </button>
+          <button 
+            @click="viewMode = 'year'" 
+            :class="['btn-filter', { active: viewMode === 'year' }]"
+          >
+            📆 Yearly
+          </button>
+        </div>
+
+        <input 
+          v-if="viewMode === 'month'" 
+          type="month" 
+          v-model="selectedMonth" 
+          class="input-date"
+        />
+        <input 
+          v-else
+          type="number" 
+          v-model.number="selectedYear" 
+          class="input-date" 
+          min="2020" 
+          max="2030"
+        />
       </div>
     </div>
 
@@ -91,9 +98,27 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="summary in sortedEmployeeSummaries" :key="summary.employeeID">
+            <tr 
+              v-for="(summary, index) in sortedEmployeeSummaries" 
+              :key="summary.employeeID"
+              :style="{ animationDelay: `${index * 0.05}s` }"
+              class="table-row-animated"
+            >
               <td>
                 <div class="employee-cell">
+                  <img 
+                    v-if="summary.employeeAvatar" 
+                    :src="summary.employeeAvatar" 
+                    :alt="summary.employeeName"
+                    class="employee-avatar"
+                    @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
+                  />
+                  <div 
+                    v-else 
+                    class="employee-avatar avatar-placeholder"
+                  >
+                    {{ summary.employeeName.charAt(0).toUpperCase() }}
+                  </div>
                   <div class="employee-name">{{ summary.employeeName }}</div>
                 </div>
               </td>
@@ -152,6 +177,7 @@ import { useInitialDataStore } from '@/stores/initialData'
 import { getWorkBlocks } from '@/services/workReportService'
 import { buildTeamOrgChart } from '@/utils/organizationChart'
 import type { EmployeeWorkSummary, WorkBlock } from '@/types/work-report'
+import PageHeader from '@/components/PageHeader.vue'
 
 const authStore = useAuthStore()
 const initialDataStore = useInitialDataStore()
@@ -286,6 +312,7 @@ function processWorkReports(workBlocks: WorkBlock[]) {
     employeeMap.set(emp.employeeID, {
       employeeID: emp.employeeID,
       employeeName: emp.name,
+      employeeAvatar: emp.employeeProfile?.pictureUrl,
       totalHours: 0,
       workDays: 0,
       workBlocks: []
@@ -345,45 +372,67 @@ watch([viewMode, selectedMonth, selectedYear], () => {
   background: #f5f7fa;
 }
 
-/* Header */
-.header-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 32px 40px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 40px;
-}
-
+/* Page Title Styles */
 .page-title {
   flex: 1;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.back-button {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: white;
+  transform: translateX(-4px);
+}
+
 .page-title h1 {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  margin: 0 0 8px 0;
+  margin: 0;
 }
 
 .subtitle {
   margin: 0;
   opacity: 0.95;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
 }
 
-/* Header Filters */
-.header-filters {
+/* Filters Section */
+.filters-section {
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+  margin-top: 60px;
+}
+
+.filters-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 40px;
   display: flex;
   gap: 16px;
   align-items: center;
+  justify-content: center;
 }
 
 .btn-group {
@@ -393,47 +442,46 @@ watch([viewMode, selectedMonth, selectedYear], () => {
 
 .btn-filter {
   padding: 10px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  border: 2px solid #e3e8ef;
+  background: white;
+  color: #667eea;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  backdrop-filter: blur(10px);
 }
 
 .btn-filter:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: #f5f7fa;
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 
 .btn-filter.active {
-  background: white;
-  color: #667eea;
-  border-color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .input-date {
   padding: 10px 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #e3e8ef;
+  background: white;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   min-width: 160px;
   color: #667eea;
-  backdrop-filter: blur(10px);
   transition: all 0.3s;
 }
 
 .input-date:focus {
   outline: none;
-  border-color: white;
-  background: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 /* Loading */
@@ -497,30 +545,34 @@ watch([viewMode, selectedMonth, selectedYear], () => {
 .reports-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 20px 40px;
+  padding: 80px 20px 40px;
+  position: relative;
+  z-index: 2;
 }
 
 /* Summary Grid */
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 3;
 }
 
 .summary-card {
   background: white;
-  padding: 28px;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   text-align: center;
   transition: all 0.3s;
   border: 2px solid transparent;
 }
 
 .summary-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .summary-card.highlight {
@@ -536,24 +588,24 @@ watch([viewMode, selectedMonth, selectedYear], () => {
 }
 
 .summary-icon {
-  font-size: 42px;
-  margin-bottom: 16px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  font-size: 24px;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .summary-value {
-  font-size: 36px;
+  font-size: 22px;
   font-weight: 800;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   letter-spacing: -0.5px;
 }
 
 .summary-label {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   opacity: 0.9;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 /* Table */
@@ -561,8 +613,9 @@ watch([viewMode, selectedMonth, selectedYear], () => {
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  border: 1px solid #f0f0f0;
+  overflow: visible;
+  border: none;
+  padding: 0;
 }
 
 .reports-table {
@@ -575,44 +628,117 @@ watch([viewMode, selectedMonth, selectedYear], () => {
   color: white;
 }
 
+.reports-table thead tr {
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
 .reports-table th {
-  padding: 18px 20px;
+  padding: 20px 24px;
   text-align: left;
   font-weight: 700;
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
-.reports-table td {
-  padding: 18px 20px;
-  border-bottom: 1px solid #f5f5f5;
-  font-size: 14px;
+.reports-table th:first-child {
+  border-radius: 16px 0 0 0;
+  padding-left: 32px;
+}
+
+.reports-table th:last-child {
+  border-radius: 0 16px 0 0;
+  padding-right: 32px;
 }
 
 .reports-table tbody tr {
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  background: white;
+  border-left: 4px solid #e3e8ef;
+  border-bottom: 2px solid #f0f3f7;
 }
 
 .reports-table tbody tr:hover {
-  background: #f8f9ff;
-  transform: scale(1.01);
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.04) 0%, transparent 100%);
+  border-left-color: #667eea;
+  border-bottom-color: #d4dbf0;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+  z-index: 2;
 }
 
-.reports-table tbody tr:last-child td {
+.reports-table tbody tr:last-child {
   border-bottom: none;
+}
+
+.reports-table tbody tr:last-child td:first-child {
+  border-radius: 0 0 0 16px;
+}
+
+.reports-table tbody tr:last-child td:last-child {
+  border-radius: 0 0 16px 0;
+}
+
+.reports-table td {
+  padding: 20px 24px;
+  font-size: 14px;
+  background: transparent;
+  border: none;
+  vertical-align: middle;
+}
+
+.reports-table td:first-child {
+  padding-left: 32px;
+}
+
+.reports-table td:last-child {
+  padding-right: 32px;
 }
 
 .employee-cell {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+}
+
+.employee-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e3e8ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s;
+}
+
+.avatar-placeholder {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.reports-table tbody tr:hover .employee-avatar {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .employee-name {
   font-weight: 700;
   color: #2c3e50;
   font-size: 15px;
+  transition: all 0.3s;
+  position: relative;
+  flex: 1;
+}
+
+.reports-table tbody tr:hover .employee-name {
+  color: #667eea;
 }
 
 .text-center {
@@ -628,6 +754,16 @@ watch([viewMode, selectedMonth, selectedYear], () => {
   font-weight: 700;
   font-size: 14px;
   box-shadow: 0 2px 8px rgba(21, 101, 192, 0.15);
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+
+.reports-table tbody tr:hover .hours-badge {
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+  color: white;
+  border-color: #1565c0;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3);
 }
 
 .btn-details {
@@ -646,6 +782,22 @@ watch([viewMode, selectedMonth, selectedYear], () => {
 .btn-details:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Table Row Animation */
+.table-row-animated {
+  animation: slideInRow 0.5s ease-out backwards;
+}
+
+@keyframes slideInRow {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Empty State */
@@ -762,5 +914,47 @@ watch([viewMode, selectedMonth, selectedYear], () => {
   color: #666;
   font-size: 14px;
   line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .filters-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-group {
+    width: 100%;
+  }
+
+  .btn-filter {
+    flex: 1;
+  }
+
+  .input-date {
+    width: 100%;
+  }
+
+  .title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .page-title h1 {
+    font-size: 24px;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .reports-table {
+    min-width: 600px;
+  }
 }
 </style>

@@ -35,6 +35,7 @@ export interface WorkReportResponse {
 export interface EmployeeWorkSummary {
   employeeID: string
   employeeName: string
+  employeeAvatar?: string
   totalHours: number
   workDays: number
   workBlocks: WorkBlock[]

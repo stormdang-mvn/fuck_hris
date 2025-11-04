@@ -1,16 +1,36 @@
 <template>
   <div class="home">
     <!-- Header with User Info -->
-    <div class="header-section">
-      <div class="header-content">
+    <PageHeader>
+      <template #left>
         <div class="user-welcome">
-          <h1>👋 Hello, {{ authStore.user?.fullName }}!</h1>
-          <p class="user-email">{{ authStore.user?.email }}</p>
+          <div class="welcome-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div class="welcome-text">
+            <h1>Hello, <span class="user-name">{{ authStore.user?.fullName }}</span>!</h1>
+            <p class="user-email">
+              <span class="email-icon">✉️</span>
+              {{ authStore.user?.email }}
+            </p>
+          </div>
         </div>
-        <button @click="handleLogout" class="logout-button">
-          🚪 Logout
-        </button>
-      </div>
+      </template>
+    </PageHeader>
+
+    <!-- Floating Action Buttons -->
+    <div class="floating-nav">
+      <router-link to="/work-reports" class="floating-btn work-reports-btn">
+        <span class="floating-btn-icon">📊</span>
+        <span class="floating-btn-label">Work Reports</span>
+      </router-link>
+      <button @click="handleLogout" class="floating-btn logout-btn">
+        <span class="floating-btn-icon">🚪</span>
+        <span class="floating-btn-label">Logout</span>
+      </button>
     </div>
 
     <!-- Loading State -->
@@ -29,46 +49,31 @@
 
     <!-- Organization Chart -->
     <div v-else-if="teamStructure.team" class="org-chart-container">
-      <!-- Team Header with Stats -->
-      <div class="team-header">
-        <div class="team-title">
-          <h2>🏢 {{ teamStructure.team.groupName }}</h2>
-          <div class="team-meta">
-            <span class="meta-badge">{{ teamStructure.team.groupCode }}</span>
-            <span class="meta-badge leader" v-if="teamStructure.teamLeader">
-              Leader: {{ teamStructure.teamLeader.name }}
-            </span>
-          </div>
+      <!-- Level Statistics Card -->
+      <div class="level-stats-card">
+        <div class="level-stats-header">
+          <h3>📊 Team Levels</h3>
         </div>
-        
-        <!-- Compact Stats -->
-        <div class="stats-compact">
-          <div class="stat-item">
-            <span class="stat-icon">📦</span>
-            <div class="stat-info">
-              <div class="stat-value">{{ teamStructure.parts.length }}</div>
-              <div class="stat-label">Parts</div>
+        <div class="level-stats-grid">
+          <div class="level-stat-item senior">
+            <div class="level-icon">🎯</div>
+            <div class="level-info">
+              <div class="level-value">{{ levelStats.senior }}</div>
+              <div class="level-label">Senior</div>
             </div>
           </div>
-          <div class="stat-item highlight">
-            <span class="stat-icon">👔</span>
-            <div class="stat-info">
-              <div class="stat-value">{{ teamStructure.directReports.length }}</div>
-              <div class="stat-label">Direct</div>
+          <div class="level-stat-item intermediate">
+            <div class="level-icon">⚡</div>
+            <div class="level-info">
+              <div class="level-value">{{ levelStats.intermediate }}</div>
+              <div class="level-label">Intermediate</div>
             </div>
           </div>
-          <div class="stat-item">
-            <span class="stat-icon">👥</span>
-            <div class="stat-info">
-              <div class="stat-value">{{ teamStructure.indirectReports.length }}</div>
-              <div class="stat-label">Indirect</div>
-            </div>
-          </div>
-          <div class="stat-item accent">
-            <span class="stat-icon">🎯</span>
-            <div class="stat-info">
-              <div class="stat-value">{{ teamStructure.allMembers.length }}</div>
-              <div class="stat-label">Total</div>
+          <div class="level-stat-item junior">
+            <div class="level-icon">🌱</div>
+            <div class="level-info">
+              <div class="level-value">{{ levelStats.junior }}</div>
+              <div class="level-label">Junior</div>
             </div>
           </div>
         </div>
@@ -109,6 +114,7 @@ import { useInitialDataStore } from '@/stores/initialData'
 import { buildTeamOrgChart } from '@/utils/organizationChart'
 import { exportToJson, exportToText, copyToClipboard } from '@/utils/fileExport'
 import TreeChart from '@/components/TreeChart.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import type { Employee } from '@/types/initial-data'
 
 const router = useRouter()
@@ -250,6 +256,35 @@ const handleLogout = () => {
   router.push('/login')
 }
 
+// Calculate level statistics
+const levelStats = computed(() => {
+  const stats = {
+    senior: 0,
+    intermediate: 0,
+    junior: 0
+  }
+
+  // Job Grade IDs từ initialData
+  const seniorGradeId = 'ecd4977e-8f28-4c84-8301-eb5ac1ddacb0'
+  const intermediateGradeId = 'd499d1dd-147d-4287-a6c8-37571066f2e7'
+  const juniorGradeId = 'c3d044ba-a09d-4255-a919-d09222d9eba8'
+
+  teamStructure.value.allMembers.forEach(member => {
+    const jobGradeId = member.employeeProfile?.jobGradeID
+    
+    // Count by job grade ID
+    if (jobGradeId === seniorGradeId) {
+      stats.senior++
+    } else if (jobGradeId === intermediateGradeId) {
+      stats.intermediate++
+    } else if (jobGradeId === juniorGradeId) {
+      stats.junior++
+    }
+  })
+
+  return stats
+})
+
 // Load data on component mount
 onMounted(() => {
   loadData()
@@ -262,51 +297,164 @@ onMounted(() => {
   background: #f5f7fa;
 }
 
-/* Header Section */
-.header-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.header-content {
-  width: 100%;
-  padding: 0 20px;
-  box-sizing: border-box;
+/* User Welcome */
+.user-welcome {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 20px;
 }
 
-.user-welcome h1 {
-  font-size: 28px;
-  margin: 0 0 4px 0;
+.welcome-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  animation: iconFloat 3s ease-in-out infinite;
+}
+
+.welcome-icon svg {
+  stroke: white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes iconFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(5deg);
+  }
+}
+
+.welcome-text h1 {
+  font-size: 32px;
+  margin: 0 0 8px 0;
   color: white;
+  font-weight: 800;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  line-height: 1.2;
+}
+
+.user-name {
+  background: linear-gradient(120deg, #fff 0%, #e0e7ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+  display: inline-block;
 }
 
 .user-email {
   margin: 0;
-  opacity: 0.9;
-  font-size: 14px;
+  opacity: 0.95;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
 }
 
-.logout-button {
-  padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.2);
+.email-icon {
+  font-size: 16px;
+}
+
+/* Floating Navigation Buttons */
+.floating-nav {
+  position: fixed;
+  left: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 1000;
+}
+
+.floating-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border: 2px solid white;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  border: none;
+  border-radius: 50px;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s;
-  backdrop-filter: blur(10px);
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  min-width: 60px;
 }
 
-.logout-button:hover {
-  background: white;
-  color: #667eea;
+.floating-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.floating-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.floating-btn:hover {
+  transform: translateX(10px) scale(1.05);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
+}
+
+.floating-btn-icon {
+  font-size: 24px;
+  transition: transform 0.3s;
+  z-index: 1;
+}
+
+.floating-btn:hover .floating-btn-icon {
+  transform: scale(1.2) rotate(10deg);
+}
+
+.floating-btn-label {
+  white-space: nowrap;
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+.floating-btn:hover .floating-btn-label {
+  opacity: 1;
+  max-width: 150px;
+  margin-right: 8px;
+}
+
+.work-reports-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.logout-btn {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 8px 24px rgba(245, 87, 108, 0.4);
+}
+
+.logout-btn:hover {
+  box-shadow: 0 12px 32px rgba(245, 87, 108, 0.6);
 }
 
 /* Loading State */
@@ -373,106 +521,112 @@ onMounted(() => {
 .org-chart-container {
   width: 100%;
   margin: 0;
-  padding: 20px 40px 40px;
+  padding: 60px 40px 40px;
   box-sizing: border-box;
+  position: relative;
 }
 
-/* Team Header */
-.team-header {
+/* Level Statistics Card */
+.level-stats-card {
+  position: absolute;
+  top: 20px;
+  right: 40px;
   background: white;
-  padding: 20px 24px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 16px;
+  min-width: 200px;
+  z-index: 10;
+  border: 1px solid #e3e8ef;
+}
+
+.level-stats-header {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f3f7;
+}
+
+.level-stats-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #2c3e50;
+  font-weight: 700;
+}
+
+.level-stats-grid {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.team-title {
-  flex: 1;
-}
-
-.team-header h2 {
-  margin: 0 0 12px 0;
-  color: #1a1a1a;
-  font-size: 24px;
-}
-
-.team-meta {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.meta-badge {
-  display: inline-block;
-  padding: 6px 16px;
-  background: #e3f2fd;
-  color: #1976d2;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.meta-badge.leader {
-  background: #f3e5f5;
-  color: #7b1fa2;
-}
-
-/* Compact Statistics */
-.stats-compact {
-  display: flex;
-  gap: 16px;
-  flex-shrink: 0;
-}
-
-.stat-item {
+.level-stat-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
-  background: #f8f9fa;
+  padding: 12px;
   border-radius: 10px;
-  min-width: 100px;
+  transition: all 0.3s;
+  border: 2px solid transparent;
 }
 
-.stat-item.highlight {
-  background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
-  color: white;
+.level-stat-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.stat-item.accent {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+.level-stat-item.senior {
+  background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+  border-color: #6c5ce7;
 }
 
-.stat-icon {
+.level-stat-item.senior:hover {
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+}
+
+.level-stat-item.intermediate {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  border-color: #0984e3;
+}
+
+.level-stat-item.intermediate:hover {
+  box-shadow: 0 4px 12px rgba(9, 132, 227, 0.4);
+}
+
+.level-stat-item.junior {
+  background: linear-gradient(135deg, #55efc4 0%, #00b894 100%);
+  border-color: #00b894;
+}
+
+.level-stat-item.junior:hover {
+  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.4);
+}
+
+.level-icon {
   font-size: 24px;
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
   line-height: 1;
 }
 
-.stat-label {
-  font-size: 11px;
-  opacity: 0.85;
-  font-weight: 600;
+.level-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
 }
 
-.stat-item.highlight .stat-label,
-.stat-item.accent .stat-label {
-  opacity: 0.95;
+.level-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.level-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Actions */
@@ -537,19 +691,41 @@ onMounted(() => {
     align-items: flex-start;
   }
 
-  .user-welcome h1 {
-    font-size: 22px;
+  .header-right {
+    width: 100%;
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .team-header {
+  .header-logo {
+    align-self: center;
+  }
+
+  .header-actions {
+    width: 100%;
     flex-direction: column;
   }
 
-  .stats-compact {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+  .nav-button,
+  .logout-button {
     width: 100%;
+    justify-content: center;
+  }
+
+  .user-welcome {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .welcome-text h1 {
+    font-size: 24px;
+  }
+
+  .level-stats-card {
+    position: static;
+    margin-bottom: 16px;
+    min-width: auto;
   }
 
   .actions {
@@ -562,12 +738,6 @@ onMounted(() => {
   
   .org-chart-container {
     padding: 20px 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-compact {
-    grid-template-columns: 1fr;
   }
 }
 
