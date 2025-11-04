@@ -19,6 +19,30 @@ const router = createRouter({
       meta: { guest: true }
     },
     {
+      path: '/initial-data',
+      name: 'initial-data',
+      component: () => import('../views/InitialDataView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/subordinates',
+      name: 'subordinates',
+      component: () => import('../views/SubordinatesView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/debug',
+      name: 'debug',
+      component: () => import('../views/DebugView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/org-chart',
+      name: 'org-chart',
+      component: () => import('../views/OrgChartView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue'),

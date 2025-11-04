@@ -1,5 +1,6 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios'
 import type { LoginRequest, LoginResponse } from '@/types/auth'
+import type { GetInitialDataRequest, GetInitialDataResponse } from '@/types/initial-data'
 
 const api = axios.create({
   baseURL: '/api', // Sử dụng proxy thay vì URL trực tiếp
@@ -23,6 +24,13 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     const response = await api.post<LoginResponse>('/account/signin', credentials)
+    return response.data
+  }
+}
+
+export const initialDataApi = {
+  getInitialData: async (request: GetInitialDataRequest): Promise<GetInitialDataResponse> => {
+    const response = await api.post<GetInitialDataResponse>('/Home/GetInitialData', request)
     return response.data
   }
 }
