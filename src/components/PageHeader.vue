@@ -47,7 +47,9 @@ const gradientId = `waveGradient-${Math.random().toString(36).substr(2, 9)}`
   color: white;
   padding: 24px 20px 50px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 100;
   overflow: visible;
 }
 

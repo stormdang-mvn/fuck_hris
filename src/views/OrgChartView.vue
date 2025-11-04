@@ -93,20 +93,29 @@
               :key="part.group.id"
               class="part-card"
             >
+              <!-- Part Leader (Top) -->
+              <div class="part-leader-top" v-if="part.leader">
+                <div class="leader-icon">👑</div>
+                <div class="leader-info">
+                  <div class="leader-name">{{ part.leader.name }}</div>
+                  <div class="leader-title">Part Leader</div>
+                </div>
+              </div>
+              <div class="part-leader-top no-leader" v-else>
+                <div class="leader-icon">👤</div>
+                <div class="leader-info">
+                  <div class="leader-name">No Leader Assigned</div>
+                  <div class="leader-title">Part Leader</div>
+                </div>
+              </div>
+
+              <!-- Part Header -->
               <div class="part-header">
                 <h4>{{ index + 1 }}. {{ part.group.groupName }}</h4>
                 <span class="part-code">{{ part.group.groupCode }}</span>
               </div>
 
-              <div class="part-leader" v-if="part.leader">
-                <span class="leader-badge">👑 Leader</span>
-                <div class="employee-info">
-                  <strong>{{ part.leader.name }}</strong>
-                  <span class="employee-code">{{ part.leader.employeeCode }}</span>
-                  <span class="employee-email">{{ part.leader.loginID }}</span>
-                </div>
-              </div>
-
+              <!-- Part Members -->
               <div class="part-members">
                 <div class="members-header">
                   <span>👥 Members ({{ part.members.length }})</span>
@@ -634,6 +643,41 @@ h1 {
 .part-card:hover {
   border-color: #667eea;
   box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+}
+
+/* Part Leader at Top */
+.part-leader-top {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: white;
+}
+
+.part-leader-top.no-leader {
+  background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+  opacity: 0.7;
+}
+
+.leader-icon {
+  font-size: 40px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.leader-info {
+  flex: 1;
+}
+
+.leader-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.leader-title {
+  font-size: 13px;
+  opacity: 0.9;
 }
 
 .part-header {

@@ -103,7 +103,7 @@
       </form>
 
       <div class="login-footer">
-        <p>Powered by <strong>HRIS Platform</strong></p>
+        <p>Powered by <strong>Storm Dang</strong></p>
       </div>
     </div>
   </div>

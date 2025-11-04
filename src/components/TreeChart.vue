@@ -74,30 +74,29 @@
         >
           <!-- Part Card -->
           <div class="part-card">
-            <!-- Part Header -->
-            <div class="part-header">
-              <span class="part-icon">📁</span>
-              <span class="part-name">Part {{ part.group.groupName }}</span>
-            </div>
-            <div class="part-count">{{ part.members.length }} employees</div>
-
-            <!-- Part Manager -->
-            <div v-if="part.leader" class="manager-section">
+            <!-- Part Manager (Top) -->
+            <div v-if="part.leader" class="manager-section-top">
               <img 
                 v-if="part.leader.employeeProfile?.pictureUrl" 
                 :src="part.leader.employeeProfile.pictureUrl" 
                 :alt="part.leader.name"
-                class="manager-avatar"
+                class="manager-avatar-top"
                 @error="handleImageError"
               />
-              <div v-else class="manager-avatar avatar-placeholder-sm">
+              <div v-else class="manager-avatar-top avatar-placeholder-top">
                 {{ getInitials(part.leader.name) }}
               </div>
-              <div class="manager-info">
-                <div class="manager-name">{{ part.leader.name }}</div>
-                <div class="manager-role">Manager</div>
+              <div class="manager-info-top">
+                <div class="manager-name-top">{{ part.leader.name }}</div>
+                <div class="manager-role-top">Part Leader</div>
               </div>
             </div>
+
+            <!-- Part Header -->
+            <div class="part-header">
+              <span class="part-name">{{ part.group.groupName }}</span>
+            </div>
+            <div class="part-count">{{ part.members.length }} employees</div>
 
             <!-- Members grouped by grade -->
             <div 
@@ -476,19 +475,58 @@ const partsWithGrades = computed<PartWithGrades[]>(() => {
   border: none;
 }
 
-.part-header {
-  background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
-  color: white;
-  padding: 10px 14px;
+/* Manager Section at Top */
+.manager-section-top {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 13px;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
-.part-icon {
+.manager-avatar-top {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-placeholder-top {
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
   font-size: 16px;
+  color: white;
+}
+
+.manager-info-top {
+  flex: 1;
+}
+
+.manager-name-top {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+
+.manager-role-top {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.part-header {
+  background: #f5f5f5;
+  padding: 6px 18px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #667eea;
+  text-align: center;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .part-name {
