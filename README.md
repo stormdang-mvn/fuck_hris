@@ -155,7 +155,7 @@ API `GetInitialData` sử dụng **hash-based caching** để tối ưu hiệu n
 
 ### Login
 ```
-POST https://hris.humaxdigital.com:8080/v1/account/signin
+POST https://hris.marusysvina.com:8080/v1/account/signin
 ```
 
 **Request:**
@@ -169,12 +169,12 @@ POST https://hris.humaxdigital.com:8080/v1/account/signin
 
 ### Initial Data
 ```
-POST https://hris.humaxdigital.com:8080/v1/Home/GetInitialData
+POST https://hris.marusysvina.com:8080/v1/Home/GetInitialData
 ```
 
 **Lưu ý về CORS:** 
 - Project sử dụng Vite proxy để tránh CORS errors
-- Requests đến `/api/*` được proxy đến `https://hris.humaxdigital.com:8080/v1/*`
+- Requests đến `/api/*` được proxy đến `https://hris.marusysvina.com:8080/v1/*`
 
 ## 📖 Code Examples
 
