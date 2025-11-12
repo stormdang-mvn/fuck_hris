@@ -18,35 +18,40 @@
     <!-- Filters Section (moved out of header) -->
     <div class="filters-section">
       <div class="filters-container">
-        <div class="btn-group">
-          <button 
-            @click="viewMode = 'month'" 
-            :class="['btn-filter', { active: viewMode === 'month' }]"
-          >
-            📅 Monthly
-          </button>
-          <button 
-            @click="viewMode = 'year'" 
-            :class="['btn-filter', { active: viewMode === 'year' }]"
-          >
-            📆 Yearly
-          </button>
-        </div>
+        <!-- Employee Search -->
+        <EmployeeSearch v-model="selectedEmployees" />
+        
+        <div class="filters-row">
+          <div class="btn-group">
+            <button 
+              @click="viewMode = 'month'" 
+              :class="['btn-filter', { active: viewMode === 'month' }]"
+            >
+              📅 Monthly
+            </button>
+            <button 
+              @click="viewMode = 'year'" 
+              :class="['btn-filter', { active: viewMode === 'year' }]"
+            >
+              📆 Yearly
+            </button>
+          </div>
 
-        <input 
-          v-if="viewMode === 'month'" 
-          type="month" 
-          v-model="selectedMonth" 
-          class="input-date"
-        />
-        <input 
-          v-else
-          type="number" 
-          v-model.number="selectedYear" 
-          class="input-date" 
-          min="2020" 
-          max="2030"
-        />
+          <input 
+            v-if="viewMode === 'month'" 
+            type="month" 
+            v-model="selectedMonth" 
+            class="input-date"
+          />
+          <input 
+            v-else
+            type="number" 
+            v-model.number="selectedYear" 
+            class="input-date" 
+            min="2020" 
+            max="2030"
+          />
+        </div>
       </div>
     </div>
 
@@ -178,9 +183,13 @@ import { getWorkBlocks } from '@/services/workReportService'
 import { buildTeamOrgChart } from '@/utils/organizationChart'
 import type { EmployeeWorkSummary, WorkBlock } from '@/types/work-report'
 import PageHeader from '@/components/PageHeader.vue'
+import EmployeeSearch from '@/components/EmployeeSearch.vue'
 
 const authStore = useAuthStore()
 const initialDataStore = useInitialDataStore()
+
+// Employee Search
+const selectedEmployees = ref([])
 
 const viewMode = ref<'month' | 'year'>('month')
 const selectedMonth = ref(getCurrentMonth())
@@ -229,17 +238,26 @@ async function loadWorkReports() {
       return
     }
 
-    // Build team org chart to get team members only
-    const teamStructure = buildTeamOrgChart(initialDataStore.data, authStore.user.employeeID)
+    // Get employee IDs - if employees are selected in search, use only those (can be anyone)
+    // Otherwise use all team members
+    let employeeIDs: string[]
     
-    // Get all team member IDs (direct + indirect reports + team leader)
-    const employeeIDs = teamStructure.allMembers.map(emp => emp.employeeID)
+    if (selectedEmployees.value.length > 0) {
+      // Use selected employees (can be anyone, not restricted to team)
+      employeeIDs = selectedEmployees.value.map((emp: any) => emp.employeeID)
+      console.log('🔍 Filtering by selected employees:', selectedEmployees.value.length)
+    } else {
+      // Build team org chart to get team members only
+      const teamStructure = buildTeamOrgChart(initialDataStore.data, authStore.user.employeeID)
+      // Get all team member IDs (direct + indirect reports + team leader)
+      employeeIDs = teamStructure.allMembers.map(emp => emp.employeeID)
+      console.log('👥 Showing all team members:', employeeIDs.length, 'employees')
+    }
 
-    console.log('👥 Team members:', employeeIDs.length, 'employees')
-    console.log('📋 First few IDs:', employeeIDs.slice(0, 3))
+    console.log('📋 Employee IDs:', employeeIDs.slice(0, 5))
 
     if (employeeIDs.length === 0) {
-      error.value = 'No employees found in team'
+      error.value = 'No employees selected'
       loading.value = false
       return
     }
@@ -304,20 +322,35 @@ function processWorkReports(workBlocks: WorkBlock[]) {
   
   if (!initialDataStore.data || !authStore.user?.employeeID) return
 
-  // Build team structure to get team members with names
-  const teamStructure = buildTeamOrgChart(initialDataStore.data, authStore.user.employeeID)
-
-  // Initialize summaries for team members only
-  teamStructure.allMembers.forEach(emp => {
-    employeeMap.set(emp.employeeID, {
-      employeeID: emp.employeeID,
-      employeeName: emp.name,
-      employeeAvatar: emp.employeeProfile?.pictureUrl,
-      totalHours: 0,
-      workDays: 0,
-      workBlocks: []
+  // If there are selected employees, use them; otherwise use team members
+  if (selectedEmployees.value.length > 0) {
+    // Initialize summaries for selected employees (can be anyone)
+    selectedEmployees.value.forEach((emp: any) => {
+      employeeMap.set(emp.employeeID, {
+        employeeID: emp.employeeID,
+        employeeName: emp.englishName || emp.name,
+        employeeAvatar: emp.employeeProfile?.pictureUrl,
+        totalHours: 0,
+        workDays: 0,
+        workBlocks: []
+      })
     })
-  })
+  } else {
+    // Build team structure to get team members with names
+    const teamStructure = buildTeamOrgChart(initialDataStore.data, authStore.user.employeeID)
+    
+    // Initialize summaries for team members only
+    teamStructure.allMembers.forEach(emp => {
+      employeeMap.set(emp.employeeID, {
+        employeeID: emp.employeeID,
+        employeeName: emp.name,
+        employeeAvatar: emp.employeeProfile?.pictureUrl,
+        totalHours: 0,
+        workDays: 0,
+        workBlocks: []
+      })
+    })
+  }
 
   // Aggregate work blocks
   workBlocks.forEach(block => {
@@ -360,10 +393,10 @@ onMounted(() => {
   loadWorkReports()
 })
 
-// Auto-reload when date selection changes
-watch([viewMode, selectedMonth, selectedYear], () => {
+// Auto-reload when date selection or employee selection changes
+watch([viewMode, selectedMonth, selectedYear, selectedEmployees], () => {
   loadWorkReports()
-})
+}, { deep: true })
 </script>
 
 <style scoped>
@@ -429,6 +462,12 @@ watch([viewMode, selectedMonth, selectedYear], () => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filters-row {
   display: flex;
   gap: 16px;
   align-items: center;
