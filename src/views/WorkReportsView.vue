@@ -395,14 +395,30 @@ async function loadWorkReports() {
       })
       console.log('📦 After filtering Leave records:', filteredBlocks.length)
       
-      // Normalize BizTrip hours (days * 24h -> days * 8h)
+      // Normalize BizTrip hours (days * 24h -> working days * 8h, excluding holidays)
       const normalizedBlocks = filteredBlocks.map((block: any) => {
         if (block.description === 'Auto sync from attendance (BizTrip)') {
-          // Calculate number of days from hours (assuming 24h per day)
-          const days = block.hours / 24
+          // Get BizTrip period for holiday filtering
+          const startDate = new Date(block.startDate)
+          const endDate = new Date(block.endDate)
+          
+          // Use API hours to calculate total days (more reliable than date diff due to timezone issues)
+          const totalDays = block.hours / 24
+          
+          // Count holidays during BizTrip (only type 1, 2, 3)
+          const holidaysInBizTrip = companyHolidays.value.filter(holiday => {
+            const holidayDate = new Date(holiday.date)
+            const isInPeriod = holidayDate >= startDate && holidayDate <= endDate
+            const isActualHoliday = holiday.type === 1 || holiday.type === 2 || holiday.type === 3
+            return isInPeriod && isActualHoliday
+          }).length
+          
+          // Working days = total days - holidays
+          const workingDays = totalDays - holidaysInBizTrip
+          
           // Convert to 8h per working day
-          const normalizedHours = days * 8
-          console.log(`🛫 BizTrip normalized: ${block.hours}h (${days} days x 24h) -> ${normalizedHours}h (${days} days x 8h)`)
+          const normalizedHours = workingDays * 8
+          console.log(`🛫 BizTrip normalized: ${block.hours}h (${totalDays} days from API - ${holidaysInBizTrip} holidays = ${workingDays} working days) -> ${normalizedHours}h`)
           return { ...block, hours: normalizedHours }
         }
         return block
