@@ -39,4 +39,5 @@ export interface EmployeeWorkSummary {
   totalHours: number
   workDays: number
   workBlocks: WorkBlock[]
+  workloadRate?: number // (totalHours / maxWorkingHours) * 100
 }

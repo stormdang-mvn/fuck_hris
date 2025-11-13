@@ -99,6 +99,7 @@
               <th>Work Days</th>
               <th>Total Hours</th>
               <th>Avg Hours/Day</th>
+              <th>Workload Rate</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -133,6 +134,18 @@
               </td>
               <td class="text-center">
                 {{ (summary.totalHours / summary.workDays).toFixed(1) }}h
+              </td>
+              <td class="text-center">
+                <span 
+                  class="workload-badge"
+                  :class="{
+                    'workload-low': (summary.workloadRate || 0) < 70,
+                    'workload-normal': (summary.workloadRate || 0) >= 70 && (summary.workloadRate || 0) < 100,
+                    'workload-high': (summary.workloadRate || 0) >= 100
+                  }"
+                >
+                  {{ (summary.workloadRate || 0).toFixed(1) }}%
+                </span>
               </td>
               <td class="text-center">
                 <button @click="viewDetails(summary)" class="btn-details">
@@ -184,6 +197,7 @@ import { buildTeamOrgChart } from '@/utils/organizationChart'
 import type { EmployeeWorkSummary, WorkBlock } from '@/types/work-report'
 import PageHeader from '@/components/PageHeader.vue'
 import EmployeeSearch from '@/components/EmployeeSearch.vue'
+import { holidayApi, type Holiday } from '@/services/api'
 
 const authStore = useAuthStore()
 const initialDataStore = useInitialDataStore()
@@ -198,6 +212,74 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const employeeSummaries = ref<EmployeeWorkSummary[]>([])
 const selectedEmployee = ref<EmployeeWorkSummary | null>(null)
+
+// Company holidays for workload calculation
+const companyHolidays = ref<Holiday[]>([])
+
+// Calculate max working hours based on company holidays
+function calculateMaxWorkingHours(): number {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  
+  let startDate: Date
+  let endDate: Date
+  let periodLabel: string
+  
+  if (viewMode.value === 'month') {
+    // Month view: calculate for the selected month
+    const [year = '2025', month = '1'] = selectedMonth.value.split('-')
+    const yearNum = parseInt(year)
+    const monthNum = parseInt(month)
+    
+    startDate = new Date(yearNum, monthNum - 1, 1)
+    
+    // If selected month is current month, use today; otherwise use last day of month
+    const isCurrentMonth = yearNum === now.getFullYear() && monthNum === now.getMonth() + 1
+    if (isCurrentMonth) {
+      endDate = today
+    } else {
+      // Last day of the month
+      endDate = new Date(yearNum, monthNum, 0)
+    }
+    
+    periodLabel = `month ${selectedMonth.value}`
+  } else {
+    // Year view: calculate for the selected year
+    startDate = new Date(selectedYear.value, 0, 1)
+    
+    // If selected year is current year, use today; otherwise use last day of year
+    const isCurrentYear = selectedYear.value === now.getFullYear()
+    if (isCurrentYear) {
+      endDate = today
+    } else {
+      // Last day of the year (Dec 31)
+      endDate = new Date(selectedYear.value, 11, 31)
+    }
+    
+    periodLabel = `year ${selectedYear.value}`
+  }
+  
+  // Calculate total days in the period
+  const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  
+  // Count company holidays in the period (only type 1, 2, 3 are actual holidays)
+  const holidaysInPeriod = companyHolidays.value.filter(holiday => {
+    const holidayDate = new Date(holiday.date)
+    const isInPeriod = holidayDate >= startDate && holidayDate <= endDate
+    const isActualHoliday = holiday.type === 1 || holiday.type === 2 || holiday.type === 3
+    return isInPeriod && isActualHoliday
+  }).length
+  
+  // Working days = total days - holidays
+  const workingDays = totalDays - holidaysInPeriod
+  
+  // Max working hours = working days * 8h
+  const maxHours = workingDays * 8
+  
+  console.log(`📊 Workload calculation (${periodLabel}): ${totalDays} days - ${holidaysInPeriod} holidays = ${workingDays} working days = ${maxHours}h max`)
+  
+  return maxHours
+}
 
 function getCurrentMonth(): string {
   const now = new Date()
@@ -227,6 +309,16 @@ async function loadWorkReports() {
   error.value = null
 
   try {
+    // Load company holidays for workload calculation
+    if (companyHolidays.value.length === 0) {
+      try {
+        companyHolidays.value = await holidayApi.getAll(selectedYear.value)
+        console.log('🏖️ Loaded company holidays:', companyHolidays.value.length)
+      } catch (err) {
+        console.error('Failed to load holidays:', err)
+      }
+    }
+
     // Load initial data if not loaded
     if (!initialDataStore.data) {
       await initialDataStore.fetchInitialData()
@@ -385,12 +477,19 @@ function processWorkReports(workBlocks: WorkBlock[]) {
     }
   })
 
-  // Calculate work days (unique dates)
+  // Calculate work days (unique dates) and workload rate
+  const maxWorkingHours = calculateMaxWorkingHours()
+  
   employeeMap.forEach(summary => {
     const uniqueDates = new Set(
       summary.workBlocks.map(block => block.startDate.split('T')[0])
     )
     summary.workDays = uniqueDates.size
+    
+    // Calculate workload rate: (actual hours / max hours) * 100
+    if (maxWorkingHours > 0) {
+      summary.workloadRate = (summary.totalHours / maxWorkingHours) * 100
+    }
   })
 
   // Filter out employees with no work
@@ -421,6 +520,16 @@ onMounted(() => {
 watch([viewMode, selectedMonth, selectedYear, selectedEmployees], () => {
   loadWorkReports()
 }, { deep: true })
+
+// Reload holidays when year changes
+watch(selectedYear, async (newYear) => {
+  try {
+    companyHolidays.value = await holidayApi.getAll(newYear)
+    console.log('🏖️ Reloaded holidays for year', newYear, ':', companyHolidays.value.length)
+  } catch (err) {
+    console.error('Failed to reload holidays:', err)
+  }
+})
 </script>
 
 <style scoped>
@@ -827,6 +936,58 @@ watch([viewMode, selectedMonth, selectedYear, selectedEmployees], () => {
   border-color: #1565c0;
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3);
+}
+
+.workload-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+
+.workload-low {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  color: #e65100;
+  box-shadow: 0 2px 8px rgba(230, 81, 0, 0.15);
+}
+
+.workload-normal {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: #2e7d32;
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.15);
+}
+
+.workload-high {
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  color: #c62828;
+  box-shadow: 0 2px 8px rgba(198, 40, 40, 0.15);
+}
+
+.reports-table tbody tr:hover .workload-low {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  border-color: #e65100;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(230, 81, 0, 0.3);
+}
+
+.reports-table tbody tr:hover .workload-normal {
+  background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+  color: white;
+  border-color: #2e7d32;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.reports-table tbody tr:hover .workload-high {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  color: white;
+  border-color: #c62828;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.3);
 }
 
 .btn-details {

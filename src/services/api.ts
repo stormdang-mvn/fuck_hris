@@ -35,4 +35,19 @@ export const initialDataApi = {
   }
 }
 
+export interface Holiday {
+  holidayID: string
+  date: string
+  type: number
+  description: string
+  companyID: string
+}
+
+export const holidayApi = {
+  getAll: async (year: number): Promise<Holiday[]> => {
+    const response = await api.get<Holiday[]>(`/holiday/GetAll?year=${year}`)
+    return response.data
+  }
+}
+
 export default api
