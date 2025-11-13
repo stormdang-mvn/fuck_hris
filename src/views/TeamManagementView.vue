@@ -306,70 +306,66 @@ async function loadTeamData() {
       sample: Array.from(employeePartMap.entries()).slice(0, 3)
     })
 
-    // Load leave info for each team member
+    // Show members immediately with basic info (without leave data)
     const currentYear = new Date().getFullYear()
-    const membersWithLeave: TeamMember[] = []
-
-    for (const emp of teamStructure.allMembers) {
+    const membersWithBasicInfo: TeamMember[] = teamStructure.allMembers.map(emp => {
+      const partName = employeePartMap.get(emp.employeeID) || 'N/A'
+      const birthYear = getBirthYear(emp)
+      const jobGrade = getJobGradeName(emp.employeeProfile?.jobGradeID)
+      const gradeSeniority = formatMonthsToSeniority(emp.employeeProfile?.jobGradeSeniority)
+      
+      return {
+        employeeID: emp.employeeID,
+        name: emp.name,
+        englishName: emp.englishName || emp.name,
+        avatar: emp.employeeProfile?.pictureUrl,
+        birthYear,
+        dateOfJoin: emp.dateOfJoin || '',
+        seniority: emp.dateOfJoin ? calculateSeniority(emp.dateOfJoin) : 'N/A',
+        jobGrade,
+        gradeSeniority,
+        partName,
+        daysUsed: 0,
+        daysRemaining: 0
+      }
+    })
+    
+    // Display members immediately
+    teamMembers.value = membersWithBasicInfo
+    console.log('✅ Displayed', membersWithBasicInfo.length, 'members with basic info')
+    
+    // Close loading popup immediately after displaying list
+    loading.value = false
+    
+    // Load leave info asynchronously in parallel (in background)
+    console.log('🔄 Loading leave info for', membersWithBasicInfo.length, 'members...')
+    const leavePromises = membersWithBasicInfo.map(async (member, index) => {
       try {
-        // Get part name from the map (already computed in buildTeamOrgChart)
-        const partName = employeePartMap.get(emp.employeeID) || 'N/A'
-        
-        // Get leave info
-        const leaveInfo = await leaveApi.getLeaveInfoByYear(currentYear, emp.employeeID)
-        
-        // Calculate days used and remaining
+        const leaveInfo = await leaveApi.getLeaveInfoByYear(currentYear, member.employeeID)
         const daysUsed = leaveInfo.annualLeave.originUse + leaveInfo.refreshLeave.use
         const daysRemaining = leaveInfo.annualLeave.remain + leaveInfo.refreshLeave.remain
         
-        // Get birth year from employeeProfile.birthDate
-        const birthYear = getBirthYear(emp)
-        
-        // Get job grade and grade seniority
-        const jobGrade = getJobGradeName(emp.employeeProfile?.jobGradeID)
-        const gradeSeniority = formatMonthsToSeniority(emp.employeeProfile?.jobGradeSeniority)
-        
-        membersWithLeave.push({
-          employeeID: emp.employeeID,
-          name: emp.name,
-          englishName: emp.englishName || emp.name,
-          avatar: emp.employeeProfile?.pictureUrl,
-          birthYear,
-          dateOfJoin: emp.dateOfJoin || '',
-          seniority: emp.dateOfJoin ? calculateSeniority(emp.dateOfJoin) : 'N/A',
-          jobGrade,
-          gradeSeniority,
-          partName,
-          daysUsed,
-          daysRemaining
-        })
+        // Update via array assignment to trigger reactivity
+        const updated = { ...member, daysUsed, daysRemaining }
+        teamMembers.value = [
+          ...teamMembers.value.slice(0, index),
+          updated,
+          ...teamMembers.value.slice(index + 1)
+        ]
       } catch (err) {
-        console.error(`Failed to load leave info for ${emp.name}:`, err)
-        
-        // Still add member but with 0 days
-        membersWithLeave.push({
-          employeeID: emp.employeeID,
-          name: emp.name,
-          englishName: emp.englishName || emp.name,
-          avatar: emp.employeeProfile?.pictureUrl,
-          birthYear: getBirthYear(emp),
-          dateOfJoin: emp.dateOfJoin || '',
-          seniority: emp.dateOfJoin ? calculateSeniority(emp.dateOfJoin) : 'N/A',
-          jobGrade: getJobGradeName(emp.employeeProfile?.jobGradeID),
-          gradeSeniority: formatMonthsToSeniority(emp.employeeProfile?.jobGradeSeniority),
-          partName: employeePartMap.get(emp.employeeID) || 'N/A',
-          daysUsed: 0,
-          daysRemaining: 0
-        })
+        console.error(`Failed to load leave info for ${member.name}:`, err)
+        // Keep 0 values on error
       }
-    }
-
-    teamMembers.value = membersWithLeave
+    })
+    
+    // Don't await - let it run in background
+    Promise.all(leavePromises).then(() => {
+      console.log('✅ All leave info loaded')
+    })
 
   } catch (err: any) {
     console.error('Error loading team data:', err)
     error.value = err.message || 'Failed to load team data'
-  } finally {
     loading.value = false
   }
 }
