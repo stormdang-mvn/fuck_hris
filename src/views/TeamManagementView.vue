@@ -265,6 +265,18 @@ async function loadTeamData() {
     // Build team org chart
     const teamStructure = buildTeamOrgChart(initialDataStore.data, authStore.user.employeeID)
     console.log('👥 Team members:', teamStructure.allMembers.length)
+    
+    // Check if current user is a PART leader (not TEAM leader)
+    const currentUserID = authStore.user?.employeeID
+    const isPartLeader = teamStructure.parts.some(part => part.group.leaderID === currentUserID)
+    const myPart = isPartLeader 
+      ? teamStructure.parts.find(part => part.group.leaderID === currentUserID)
+      : null
+    
+    if (isPartLeader && myPart) {
+      console.log('👤 You are PART leader of:', myPart.group.groupName)
+      console.log('📋 Filtering to show only your PART members')
+    }
 
     // Create map from employeeID to partName from directReports and indirectReports
     const employeePartMap = new Map<string, string>()
@@ -306,9 +318,21 @@ async function loadTeamData() {
       sample: Array.from(employeePartMap.entries()).slice(0, 3)
     })
 
+    // Filter members based on user role
+    let membersToShow = teamStructure.allMembers
+    if (isPartLeader && myPart) {
+      // PART leader: show only their PART members + themselves
+      const partMemberIDs = new Set([
+        myPart.group.leaderID, // Include PART leader themselves
+        ...myPart.members.map(m => m.employeeID)
+      ])
+      membersToShow = teamStructure.allMembers.filter(emp => partMemberIDs.has(emp.employeeID))
+      console.log(`📋 Filtered from ${teamStructure.allMembers.length} to ${membersToShow.length} members`)
+    }
+    
     // Show members immediately with basic info (without leave data)
     const currentYear = new Date().getFullYear()
-    const membersWithBasicInfo: TeamMember[] = teamStructure.allMembers.map(emp => {
+    const membersWithBasicInfo: TeamMember[] = membersToShow.map(emp => {
       const partName = employeePartMap.get(emp.employeeID) || 'N/A'
       const birthYear = getBirthYear(emp)
       const jobGrade = getJobGradeName(emp.employeeProfile?.jobGradeID)

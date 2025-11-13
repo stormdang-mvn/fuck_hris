@@ -354,9 +354,30 @@ async function loadWorkReports() {
     } else {
       // Build team org chart to get team members only
       const teamStructure = buildTeamOrgChart(initialDataStore.data, authStore.user.employeeID)
-      // Get all team member IDs (direct + indirect reports + team leader)
-      employeeIDs = teamStructure.allMembers.map(emp => emp.employeeID)
-      console.log('👥 Showing all team members:', employeeIDs.length, 'employees')
+      
+      // Check if current user is a PART leader (not TEAM leader)
+      const currentUserID = authStore.user?.employeeID
+      const isPartLeader = teamStructure.parts.some(part => part.group.leaderID === currentUserID)
+      const myPart = isPartLeader 
+        ? teamStructure.parts.find(part => part.group.leaderID === currentUserID)
+        : null
+      
+      if (isPartLeader && myPart) {
+        // PART leader: show only their PART members + themselves
+        console.log('👤 You are PART leader of:', myPart.group.groupName)
+        const partMemberIDs = new Set([
+          myPart.group.leaderID, // Include PART leader themselves
+          ...myPart.members.map(m => m.employeeID)
+        ])
+        employeeIDs = teamStructure.allMembers
+          .filter(emp => partMemberIDs.has(emp.employeeID))
+          .map(emp => emp.employeeID)
+        console.log('📋 Filtered to PART members:', employeeIDs.length, 'employees')
+      } else {
+        // TEAM leader: show all team members
+        employeeIDs = teamStructure.allMembers.map(emp => emp.employeeID)
+        console.log('👥 Showing all team members:', employeeIDs.length, 'employees')
+      }
     }
 
     console.log('📋 Employee IDs:', employeeIDs.slice(0, 5))
@@ -372,7 +393,7 @@ async function loadWorkReports() {
     let toDate: string
 
     if (viewMode.value === 'month') {
-      const [year, month] = selectedMonth.value.split('-')
+      const [year = '', month = ''] = selectedMonth.value.split('-')
       fromDate = `${year}-${month}-01`
       const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate()
       toDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`

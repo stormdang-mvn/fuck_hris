@@ -25,7 +25,7 @@ export interface TeamStructure {
 /**
  * Build organization chart for a team leader
  * @param data Initial data from HRIS
- * @param employeeID The ID of the team leader
+ * @param employeeID The ID of the team leader or part leader
  * @returns Team structure with hierarchy information
  */
 export function buildTeamOrgChart(
@@ -45,19 +45,40 @@ export function buildTeamOrgChart(
   const employeeList = data.employeeList || []
 
   // Step 1: Find TEAM where leaderID = employeeID
-  const myTeam = companyGroups.find(
+  let myTeam = companyGroups.find(
     group => group.levelName === 'TEAM' && group.leaderID === employeeID
   )
 
+  // Step 1b: If not TEAM leader, check if user is PART leader
   if (!myTeam) {
-    console.log('❌ No TEAM found where you are the leader')
+    const myPart = companyGroups.find(
+      group => group.levelName === 'PART' && group.leaderID === employeeID
+    )
+    
+    if (myPart) {
+      // Found PART where user is leader, find parent TEAM
+      myTeam = companyGroups.find(
+        group => group.levelName === 'TEAM' && group.oldGroupID === myPart.parentGroupID
+      )
+      
+      if (myTeam) {
+        console.log('✅ You are PART leader of:', myPart.groupName)
+        console.log('✅ Parent TEAM:', myTeam.groupName)
+      }
+    }
+  }
+
+  if (!myTeam) {
+    console.log('❌ No TEAM found where you are the leader or part leader')
     return result
   }
 
   result.team = myTeam
-  result.teamLeader = employeeList.find((emp: Employee) => emp.employeeID === employeeID) || null
+  // Get actual TEAM leader (not current user)
+  result.teamLeader = employeeList.find((emp: Employee) => emp.employeeID === myTeam.leaderID) || null
 
   console.log('✅ Found your TEAM:', myTeam.groupName, 'ID:', myTeam.oldGroupID)
+  console.log('👤 TEAM Leader:', result.teamLeader?.name || 'Unknown')
 
   // Step 2: Get all direct reports from TEAM.employees
   const teamEmployeeMap = new Map<string, Employee>()
