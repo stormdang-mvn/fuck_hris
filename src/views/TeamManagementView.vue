@@ -330,6 +330,14 @@ async function loadTeamData() {
       }
     })
     
+    // Sort by Job Grade: Senior -> IM -> JR
+    const gradeOrder = { 'Senior': 1, 'IM': 2, 'JR': 3, 'N/A': 4 }
+    membersWithBasicInfo.sort((a, b) => {
+      const orderA = gradeOrder[a.jobGrade as keyof typeof gradeOrder] || 999
+      const orderB = gradeOrder[b.jobGrade as keyof typeof gradeOrder] || 999
+      return orderA - orderB
+    })
+    
     // Display members immediately
     teamMembers.value = membersWithBasicInfo
     console.log('✅ Displayed', membersWithBasicInfo.length, 'members with basic info')
