@@ -164,8 +164,8 @@ const getGradeName = (gradeId: string | undefined): string => {
 }
 
 const getInitials = (name: string): string => {
-  const parts = name.split(' ')
-  if (parts.length >= 2) {
+  const parts = name.split(' ').filter(p => p.length > 0)
+  if (parts.length >= 2 && parts[0]?.[0] && parts[parts.length - 1]?.[0]) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
   }
   return name.substring(0, 2).toUpperCase()

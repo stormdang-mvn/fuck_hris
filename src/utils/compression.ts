@@ -41,7 +41,10 @@ export function compressData(data: any): string {
     let binary = ''
     const len = compressed.byteLength
     for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(compressed[i])
+      const byte = compressed[i]
+      if (byte !== undefined) {
+        binary += String.fromCharCode(byte)
+      }
     }
     
     return btoa(binary)
