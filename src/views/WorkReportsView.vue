@@ -297,7 +297,31 @@ async function loadWorkReports() {
 
     // Process data (response uses "wBlocks" not "workBlocks")
     if (response.wBlocks && response.wBlocks.length > 0) {
-      processWorkReports(response.wBlocks)
+      // Filter out Leave records (keep BizTrip and other work blocks)
+      const filteredBlocks = response.wBlocks.filter((block: any) => {
+        return block.description !== 'Auto sync from attendance (Leave)'
+      })
+      console.log('📦 After filtering Leave records:', filteredBlocks.length)
+      
+      // Normalize BizTrip hours (days * 24h -> days * 8h)
+      const normalizedBlocks = filteredBlocks.map((block: any) => {
+        if (block.description === 'Auto sync from attendance (BizTrip)') {
+          // Calculate number of days from hours (assuming 24h per day)
+          const days = block.hours / 24
+          // Convert to 8h per working day
+          const normalizedHours = days * 8
+          console.log(`🛫 BizTrip normalized: ${block.hours}h (${days} days x 24h) -> ${normalizedHours}h (${days} days x 8h)`)
+          return { ...block, hours: normalizedHours }
+        }
+        return block
+      })
+      
+      if (normalizedBlocks.length > 0) {
+        processWorkReports(normalizedBlocks)
+      } else {
+        console.warn('⚠️ No work blocks after filtering')
+        employeeSummaries.value = []
+      }
     } else {
       console.warn('⚠️ No work blocks in response')
       employeeSummaries.value = []
