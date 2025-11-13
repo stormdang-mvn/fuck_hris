@@ -216,12 +216,12 @@ const selectedEmployee = ref<EmployeeWorkSummary | null>(null)
 // Company holidays for workload calculation
 const companyHolidays = ref<Holiday[]>([])
 
-// Calculate max working hours based on company holidays
-function calculateMaxWorkingHours(): number {
+// Calculate max working hours based on company holidays and employee's join date
+function calculateMaxWorkingHours(employeeID: string): number {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   
-  let startDate: Date
+  let periodStartDate: Date
   let endDate: Date
   let periodLabel: string
   
@@ -231,7 +231,7 @@ function calculateMaxWorkingHours(): number {
     const yearNum = parseInt(year)
     const monthNum = parseInt(month)
     
-    startDate = new Date(yearNum, monthNum - 1, 1)
+    periodStartDate = new Date(yearNum, monthNum - 1, 1)
     
     // If selected month is current month, use today; otherwise use last day of month
     const isCurrentMonth = yearNum === now.getFullYear() && monthNum === now.getMonth() + 1
@@ -245,7 +245,7 @@ function calculateMaxWorkingHours(): number {
     periodLabel = `month ${selectedMonth.value}`
   } else {
     // Year view: calculate for the selected year
-    startDate = new Date(selectedYear.value, 0, 1)
+    periodStartDate = new Date(selectedYear.value, 0, 1)
     
     // If selected year is current year, use today; otherwise use last day of year
     const isCurrentYear = selectedYear.value === now.getFullYear()
@@ -257,6 +257,19 @@ function calculateMaxWorkingHours(): number {
     }
     
     periodLabel = `year ${selectedYear.value}`
+  }
+  
+  // Check employee's join date
+  let startDate = periodStartDate
+  const employee = initialDataStore.data?.employeeList.find(emp => emp.employeeID === employeeID)
+  
+  if (employee?.dateOfJoin) {
+    const joinDate = new Date(employee.dateOfJoin)
+    // If employee joined after period start, use join date as start
+    if (joinDate > periodStartDate && joinDate <= endDate) {
+      startDate = joinDate
+      periodLabel += ` (joined ${joinDate.toLocaleDateString()})`
+    }
   }
   
   // Calculate total days in the period
@@ -493,14 +506,15 @@ function processWorkReports(workBlocks: WorkBlock[]) {
     }
   })
 
-  // Calculate work days (unique dates) and workload rate
-  const maxWorkingHours = calculateMaxWorkingHours()
-  
+  // Calculate work days (unique dates) and workload rate per employee
   employeeMap.forEach(summary => {
     const uniqueDates = new Set(
       summary.workBlocks.map(block => block.startDate.split('T')[0])
     )
     summary.workDays = uniqueDates.size
+    
+    // Calculate max working hours for this specific employee (considering their join date)
+    const maxWorkingHours = calculateMaxWorkingHours(summary.employeeID)
     
     // Calculate workload rate: (actual hours / max hours) * 100
     if (maxWorkingHours > 0) {
