@@ -2,8 +2,11 @@ import axios, { type InternalAxiosRequestConfig } from 'axios'
 import type { LoginRequest, LoginResponse } from '@/types/auth'
 import type { GetInitialDataRequest, GetInitialDataResponse } from '@/types/initial-data'
 
+// Use environment variable or fallback to proxy in development
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+
 const api = axios.create({
-  baseURL: '/api', // Sử dụng proxy thay vì URL trực tiếp
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': '*/*'

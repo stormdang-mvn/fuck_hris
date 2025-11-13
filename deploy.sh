@@ -45,18 +45,33 @@ else
     exit 1
 fi
 
-# 5. Create systemd service file
+# 4b. Copy server files
+echo "📋 Copying server files..."
+if [ -d "server" ]; then
+    cp -r server ${DEPLOY_DIR}/
+    echo "✅ Server files copied"
+else
+    echo "❌ server/ directory not found"
+    exit 1
+fi
+
+# 5. Install server dependencies
+echo "📦 Installing server dependencies..."
+cd ${DEPLOY_DIR}/server
+npm install --production
+
+# 6. Create systemd service file
 echo "⚙️  Creating systemd service..."
 sudo tee ${SERVICE_FILE} > /dev/null << EOF
 [Unit]
-Description=HRIS Web Application
+Description=HRIS Web Application with API Proxy
 After=network.target
 
 [Service]
 Type=simple
 User=${DEPLOY_USER}
-WorkingDirectory=${DEPLOY_DIR}
-ExecStart=/usr/bin/npx serve -s dist -l 3000
+WorkingDirectory=${DEPLOY_DIR}/server
+ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -65,26 +80,29 @@ SyslogIdentifier=${APP_NAME}
 
 # Environment
 Environment=NODE_ENV=production
+Environment=PORT=3000
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
+cd -
+
 echo "✅ Service file created at ${SERVICE_FILE}"
 
-# 6. Reload systemd
+# 7. Reload systemd
 echo "🔄 Reloading systemd..."
 sudo systemctl daemon-reload
 
-# 7. Enable and start service
-echo "� Starting service..."
+# 8. Enable and start service
+echo "🚀 Starting service..."
 sudo systemctl enable ${APP_NAME}
 sudo systemctl restart ${APP_NAME}
 
-# 8. Wait a moment for service to start
+# 9. Wait a moment for service to start
 sleep 2
 
-# 9. Check service status
+# 10. Check service status
 if sudo systemctl is-active --quiet ${APP_NAME}; then
     echo "✅ Service is running"
 else
@@ -93,7 +111,7 @@ else
     exit 1
 fi
 
-# 10. Show firewall info (optional)
+# 11. Show firewall info (optional)
 if command -v ufw &> /dev/null && sudo ufw status | grep -q "Status: active"; then
     echo ""
     echo "� Opening port 3000 in firewall..."
