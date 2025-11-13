@@ -34,6 +34,17 @@
         </span>
         <span class="floating-btn-label">Work Reports</span>
       </router-link>
+      <router-link to="/team-management" class="floating-btn team-management-btn">
+        <span class="floating-btn-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </span>
+        <span class="floating-btn-label">Team Management</span>
+      </router-link>
       <button @click="handleLogout" class="floating-btn logout-btn">
         <span class="floating-btn-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -459,6 +470,15 @@ onMounted(() => {
 
 .work-reports-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.team-management-btn {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  box-shadow: 0 8px 24px rgba(67, 233, 123, 0.4);
+}
+
+.team-management-btn:hover {
+  box-shadow: 0 12px 32px rgba(67, 233, 123, 0.6);
 }
 
 .logout-btn {

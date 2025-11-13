@@ -50,4 +50,78 @@ export const holidayApi = {
   }
 }
 
+export interface LeaveInfo {
+  annualLeave: {
+    overUsedLastYear: number
+    grant: number
+    grantInAdvance: number
+    use: number
+    originUse: number
+    useByMonth: number
+    remain: number
+    unusedAnnualLeave: number
+    originUnusedAnnualLeave: number
+    unusedLastYearUseThisYear: number
+    usedAnnualLeave: number
+  }
+  refreshLeave: {
+    grant: number
+    use: number
+    remain: number
+  }
+  maternityLeave: {
+    use: number
+    pregnancyCheckGrant: number
+    pregnancyCheckPaidGrant: number
+    pregnancyCheckUse: number
+    birthLeaveStartDate: string | null
+    birthLeaveUse: number
+    birthLeaveEndDate: string | null
+    fosteringChildUse: number
+    childSickGrant: number
+    childSickUse: number
+    otherUse: number
+  }
+  officalLeave: {
+    grant: number
+    use: number
+    remain: number
+  }
+  sickLeave: {
+    grant: number
+    use: number
+    remain: number
+  }
+  congratsCondolenceLeave: {
+    use: number
+    birthUse: number
+    birthStartDate: string | null
+    birthEndDate: string | null
+    marriageOwnUse: number
+    marriageChildUse: number
+    marriageParentsUse: number
+    marriageSibilingUse: number
+    funeralChildUse: number
+    funeralSpouseUse: number
+    funeralParentsUse: number
+    funeralSiblingUse: number
+    funeralGrandParentsUse: number
+  }
+  others: {
+    grant: number
+    use: number
+    remain: number
+  }
+}
+
+export const leaveApi = {
+  getLeaveInfoByYear: async (year: number, employeeID: string): Promise<LeaveInfo> => {
+    const response = await api.post<LeaveInfo>('/Leave/GetLeaveInfoByYear', {
+      year,
+      id: employeeID
+    })
+    return response.data
+  }
+}
+
 export default api

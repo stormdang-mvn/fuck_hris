@@ -60,6 +60,10 @@ export interface EmployeeProfile {
   pictureUrl?: string
   position?: string
   positionID?: string
+  jobGradeID?: string
+  jobGradeSeniority?: number // Number of months in current grade
+  jobID?: string
+  jobFamilyID?: string
   [key: string]: any
 }
 

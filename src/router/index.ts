@@ -54,6 +54,12 @@ const router = createRouter({
       component: () => import('../views/WorkReportsView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/team-management',
+      name: 'team-management',
+      component: () => import('../views/TeamManagementView.vue'),
+      meta: { requiresAuth: true }
+    },
   ],
 })
 
